@@ -37,6 +37,17 @@ app.use(cors(corsOptions));
 // ─── Body Parser ─────────────────────────────────────────────────────────────
 app.use(express.json());
 
+// Explicit fallback for any OPTIONS that slip through
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', 'https://fitness-app1-three.vercel.app');
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  if (req.method === 'OPTIONS') return res.sendStatus(200);
+  next();
+});
+
+
 // ─── Routes ──────────────────────────────────────────────────────────────────
 app.use('/api/auth',     require('./routes/auth'));
 app.use('/api/health',   require('./routes/health'));

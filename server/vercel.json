@@ -10,10 +10,14 @@
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "server.js"
+      "dest": "server.js",
+      "headers": {
+        "Access-Control-Allow-Origin": "https://fitness-app1-three.vercel.app",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
+        "Access-Control-Allow-Credentials": "true",
+        "Access-Control-Max-Age": "86400"
+      }
     }
-  ],
-  "env": {
-    "NODE_ENV": "production"
-  }
+  ]
 }
