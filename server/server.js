@@ -4,49 +4,41 @@ const dotenv    = require('dotenv');
 const connectDB = require('./config/db');
 
 dotenv.config();
-connectDB();
 
 const app = express();
 
-// ─── CORS ───────────────────────────────────────────────────────────────────
-// Build a list of all allowed origins
+// ─── CORS ────────────────────────────────────────────────────────────────────
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
-  'https://fitness-app1-three.vercel.app',   // your deployed frontend
-  process.env.CLIENT_URL,                    // also from env var
+  'https://fitness-app1-three.vercel.app',
+  process.env.CLIENT_URL,
 ].filter(Boolean);
 
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow requests with no origin (Postman / curl / same-origin)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-    console.warn(`[CORS] Blocked origin: ${origin}`);
-    callback(new Error('Not allowed by CORS'));
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error(`CORS: Origin ${origin} not allowed`));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
-// Handle OPTIONS preflight for ALL routes FIRST
 app.options('*', cors(corsOptions));
 app.use(cors(corsOptions));
-
-// ─── Body Parser ─────────────────────────────────────────────────────────────
 app.use(express.json());
 
-// Explicit fallback for any OPTIONS that slip through
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', 'https://fitness-app1-three.vercel.app');
-  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  if (req.method === 'OPTIONS') return res.sendStatus(200);
-  next();
+// ─── DB Middleware — connect before every request ─────────────────────────────
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    console.error('DB connection failed:', err.message);
+    res.status(503).json({ msg: 'Database unavailable. Check MONGO_URI env variable.' });
+  }
 });
-
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
 app.use('/api/auth',     require('./routes/auth'));
@@ -56,14 +48,16 @@ app.use('/api/diet',     require('./routes/diet'));
 app.use('/api/goals',    require('./routes/goals'));
 app.use('/api/alerts',   require('./routes/alerts'));
 
-app.get('/',    (req, res) => res.json({ msg: '✅ SmartFit API v1.0 Running', status: 'ok' }));
-app.get('/api', (req, res) => res.json({ msg: '✅ SmartFit API v1.0 Running', status: 'ok' }));
+// Health check
+app.get('/',    (req, res) => res.json({ msg: '✅ SmartFit API v1.0', status: 'ok', env: process.env.NODE_ENV }));
+app.get('/api', (req, res) => res.json({ msg: '✅ SmartFit API v1.0', status: 'ok' }));
 
-// ─── 404 ─────────────────────────────────────────────────────────────────────
-app.use((req, res) => res.status(404).json({ msg: 'Route not found' }));
+// 404
+app.use((req, res) => res.status(404).json({ msg: `Route not found: ${req.method} ${req.path}` }));
 
-// ─── Local dev server ────────────────────────────────────────────────────────
+// ─── Local dev only ───────────────────────────────────────────────────────────
 if (!process.env.VERCEL) {
+  connectDB(); // Connect once at startup for local dev
   const PORT = process.env.PORT || 5000;
   app.listen(PORT, () => console.log(`🚀 SmartFit Server on port ${PORT}`));
 }
