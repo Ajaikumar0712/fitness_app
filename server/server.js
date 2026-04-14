@@ -25,7 +25,8 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
-app.options('*', cors(corsOptions));
+// Vercel path-to-regexp requires wildcards to be (.*) instead of *
+app.options('(.*)', cors(corsOptions));
 app.use(cors(corsOptions));
 app.use(express.json());
 
@@ -40,6 +41,18 @@ app.use(async (req, res, next) => {
   }
 });
 
+// Explicit fallback for OPTIONS (middleware layer)
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    res.header('Access-Control-Allow-Origin', req.headers.origin || 'https://fitness-app1-three.vercel.app');
+    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 // ─── Routes ──────────────────────────────────────────────────────────────────
 app.use('/api/auth',     require('./routes/auth'));
 app.use('/api/health',   require('./routes/health'));
@@ -52,12 +65,15 @@ app.use('/api/alerts',   require('./routes/alerts'));
 app.get('/',    (req, res) => res.json({ msg: '✅ SmartFit API v1.0', status: 'ok', env: process.env.NODE_ENV }));
 app.get('/api', (req, res) => res.json({ msg: '✅ SmartFit API v1.0', status: 'ok' }));
 
-// 404
-app.use((req, res) => res.status(404).json({ msg: `Route not found: ${req.method} ${req.path}` }));
+// ─── 404 ─────────────────────────────────────────────────────────────────────
+// Use (.*) for wildcard or just define as last middleware without path
+app.use((req, res) => {
+  res.status(404).json({ msg: `Route not found: ${req.method} ${req.path}` });
+});
 
 // ─── Local dev only ───────────────────────────────────────────────────────────
 if (!process.env.VERCEL) {
-  connectDB(); // Connect once at startup for local dev
+  connectDB(); 
   const PORT = process.env.PORT || 5000;
   app.listen(PORT, () => console.log(`🚀 SmartFit Server on port ${PORT}`));
 }
