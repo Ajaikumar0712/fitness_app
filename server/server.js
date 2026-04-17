@@ -72,7 +72,7 @@ app.use((req, res) => {
 });
 
 // ─── Local dev only ───────────────────────────────────────────────────────────
-if (!process.env.VERCEL) {
+if (!process.env.VERCEL && process.env.NODE_ENV !== 'test') {
   connectDB(); 
   const PORT = process.env.PORT || 5000;
   app.listen(PORT, () => console.log(`🚀 SmartFit Server on port ${PORT}`));

@@ -154,10 +154,13 @@ Open `server/.env` and set your values:
 ```env
 PORT=5000
 MONGO_URI=mongodb+srv://<username>:<password>@cluster0.mongodb.net/smartfit?retryWrites=true&w=majority
+MONGO_DNS_SERVERS=8.8.8.8,1.1.1.1
 JWT_SECRET=your_super_secret_key_here
 CLIENT_URL=http://localhost:5173
 NODE_ENV=development
 ```
+
+> `MONGO_DNS_SERVERS` is optional. Use it only if you see `querySrv ETIMEOUT` while connecting to MongoDB Atlas.
 
 ### 3. Install & start the Backend
 ```powershell
@@ -185,6 +188,38 @@ npm run dev
 
 ### 6. Open the app
 Navigate to **http://localhost:5173** → Click **Get Started Free** → Register → Start tracking!
+
+### Common MongoDB Seed Fix (Windows)
+If `npm run seed` fails with `querySrv ETIMEOUT _mongodb._tcp...`:
+
+1. Add this to `server/.env`:
+  ```env
+  MONGO_DNS_SERVERS=8.8.8.8,1.1.1.1
+  ```
+2. Save and re-run:
+  ```powershell
+  cd server
+  npm run seed
+  ```
+
+---
+
+## 🧪 Testing
+
+The application implements a multi-tier testing strategy to ensure reliability across all modules.
+
+### 1. Unit Testing (Vitest)
+Tests individual utility functions, health formulas, and UI components in isolation.
+![Unit Testing](./testing-screenshots/12-unit-testing.png)
+
+### 2. Integration Testing (Jest + Supertest)
+Verifies the interaction between different layers of the backend (Controllers, Models, Middleware).
+![Integration Testing](./testing-screenshots/13-integration-testing.png)
+
+### 3. System Testing (Playwright)
+End-to-End (E2E) tests that simulate real user workflows in a browser environment.
+Run with: `npm run test:system` (in `client` folder)
+![System Testing](./testing-screenshots/14-system-testing.png)
 
 ---
 
